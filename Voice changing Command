@@ -1,0 +1,5 @@
+# Female voice
+engine.setProperty('voice', voices[1].id) 
+
+# Male voice
+engine.setProperty('voice', voices[0].id)

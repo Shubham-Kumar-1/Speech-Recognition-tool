@@ -1,0 +1,59 @@
+import speech_recognition as sr
+import pvporcupine
+import pyaudio
+
+# Function to listen for commands after wake word is detected
+def listen_for_commands():
+    recognizer = sr.Recognizer()
+    with sr.Microphone() as source:
+        print("Listening for command...")
+        audio = recognizer.listen(source)
+        try:
+            command = recognizer.recognize_google(audio)
+            print(f"Command recognized: {command}")
+            return command
+        except sr.UnknownValueError:
+            print("Could not understand the audio")
+            return None
+        except sr.RequestError:
+            print("Could not request results from Google Speech Recognition service")
+            return None
+
+# Initialize Porcupine with a wake word
+porcupine = pvporcupine.create(keywords=["hey google"])
+
+# Initialize PyAudio for continuous listening
+pyaudio_instance = pyaudio.PyAudio()
+stream = pyaudio_instance.open(rate=porcupine.sample_rate,
+                                channels=1,
+                                format=pyaudio.paInt16,
+                                input=True,
+                                frames_per_buffer=porcupine.frame_length)
+
+print("Listening for wake word...")
+
+try:
+    while True:
+        pcm = stream.read(porcupine.frame_length)
+        keyword_index = porcupine.process(pcm)
+        
+        if keyword_index >= 0:
+            print("Wake word detected! Entering hands-free mode.")
+            # Start listening for commands
+            while True:
+                command = listen_for_commands()
+                if command:
+                    if "stop" in command.lower():
+                        print("Stopping the hands-free mode.")
+                        break
+                    else:
+                        print(f"Executing command: {command}")
+                        # Perform your action based on the command
+        else:
+            continue
+except KeyboardInterrupt:
+    print("Program interrupted.")
+finally:
+    stream.close()
+    pyaudio_instance.terminate()
+    porcupine.delete()
